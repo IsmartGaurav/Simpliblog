@@ -3,13 +3,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Bot, FileText, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, FileText, Sparkles, Zap } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center px-4 py-24 text-center space-y-8 bg-gradient-to-b from-background to-secondary/20">
+        {/* Existing hero section content */}
         <div className="space-y-4 max-w-3xl">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             Generate <span className="text-primary">AI-Powered</span> Blog Content in Seconds
@@ -142,7 +143,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-20 px-4">
+      <section id="pricing" className="py-20 px-4">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple Pricing</h2>
