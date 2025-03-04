@@ -3,17 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import { prisma } from "@/lib/prisma";
 
-type CreateContextOptions = Record<string, never>;
-
-// Removed unused function createInnerTRPCContext
-  return {
-    prisma,
-  };
-};
-
-export const createTRPCContext = (_opts: CreateNextContextOptions) => {
-  const { req } = _opts;
-  const { userId } = auth();
+export const createTRPCContext = async (_opts: CreateNextContextOptions) => {
+  const session = await auth();
+  const userId = session?.userId;
 
   return {
     prisma,

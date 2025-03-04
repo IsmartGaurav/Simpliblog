@@ -141,10 +141,10 @@ const BlogList = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     getTopics.mutate({
-      projectId,
+      projectId: "default",
       theme,
       description,
-      numTopics:parseInt(numBlogs),
+      number: parseInt(numBlogs),
       style:writingStyle
     })
   };
