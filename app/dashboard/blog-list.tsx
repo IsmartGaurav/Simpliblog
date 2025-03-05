@@ -8,10 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose
 } from '@/components/ui/dialog'
 
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Select,
   SelectContent,
@@ -28,20 +30,44 @@ const BlogList = () => {
   const [description, setDescription] = useState('');
   const [numBlogs, setNumBlogs] = useState('');
   const [writingStyle, setWritingStyle] = useState('');
+  const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
   const refetch = useRefetch()
   const getTopics = api.blog.getTopics.useMutation()
+  const generateBlogs = api.blog.generateBlogs.useMutation()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!theme || !description || !numBlogs || !writingStyle) return;
     
-    // Set the dialog to remain open during API call
     getTopics.mutate({
       projectId: "default",
       theme,
       description,
       number: parseInt(numBlogs),
       style: writingStyle
+    },
+    {
+      onSuccess: (data) => {
+        setGeneratedTitles(data)
+        refetch()
+      }
+    })
+  };
+
+  const handleGenerateBlogs = () => {
+    if (generatedTitles.length === 0) return;
+    
+    generateBlogs.mutate({
+      projectId: "default",
+      titles: generatedTitles,
+      style: writingStyle
+    },
+    {
+      onSuccess: () => {
+        setOpen(false)
+        setGeneratedTitles([])
+        refetch()
+      }
     })
   };
 
@@ -50,13 +76,15 @@ const BlogList = () => {
       <DialogTrigger asChild>
         <Button variant="secondary" className="w-full sm:w-auto">Generate New Blogs</Button>
       </DialogTrigger>
-      <DialogContent className="w-[95%] max-w-[425px] p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95%] max-w-[425px] p-4 sm:p-6 max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Generate Blog Posts</DialogTitle>
+          <DialogClose className="absolute right-4 top-4" />
         </DialogHeader>
+        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium mb-2 block">Blog Theme</label>
+            <label className="text-sm font-medium">Blog Theme</label>
             <Input 
               placeholder="Enter blog theme..." 
               value={theme}
@@ -65,7 +93,7 @@ const BlogList = () => {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium mb-2 block">Description</label>
+            <label className="text-sm font-medium">Description</label>
             <Textarea
               placeholder="Enter blog description..."
               value={description}
@@ -74,7 +102,7 @@ const BlogList = () => {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium mb-2 block">Number of Blogs</label>
+            <label className="text-sm font-medium">Number of Blogs</label>
             <Input
               type="number"
               min={1}
@@ -85,7 +113,7 @@ const BlogList = () => {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium mb-2 block">Writing Style</label>
+            <label className="text-sm font-medium">Writing Style</label>
             <Select
               value={writingStyle}
               onValueChange={setWritingStyle}
@@ -104,29 +132,17 @@ const BlogList = () => {
           </div>
           <Button 
             type="submit" 
-            variant="default"
+            className="w-full" 
             disabled={getTopics.isLoading || !theme || !description || !numBlogs || !writingStyle}
-            aria-busy={getTopics.isLoading}
-            className={`w-full ${getTopics.isLoading ? "cursor-wait" : "cursor-pointer"}`}
           >
-            {getTopics.isLoading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Generating Titles...</span>
-              </div>
-            ) : (
-              'Generate Titles'
-            )}
+            {getTopics.isLoading ? 'Generating...' : 'Generate Titles'}
           </Button>
-          {getTopics.data && (
-            <div className="mt-4">
-              <h3 className="text-sm font-medium mb-2">Generated Blog Topics:</h3>
-              <div className="max-h-[200px] overflow-y-auto">
+          {generatedTitles.length > 0 && (
+            <div className="mt-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Generated Blog Topics:</h3>
                 <ul className="space-y-2">
-                  {getTopics.data.map((topic, index) => (
+                  {generatedTitles.map((topic, index) => (
                     <li 
                       key={index}
                       className="p-2 bg-secondary/50 rounded-md text-sm"
@@ -136,9 +152,18 @@ const BlogList = () => {
                   ))}
                 </ul>
               </div>
+              <Button 
+                type="button" 
+                className="w-full" 
+                onClick={handleGenerateBlogs}
+                disabled={generateBlogs.isLoading}
+              >
+                {generateBlogs.isLoading ? 'Generating Blogs...' : 'Generate Blog Content'}
+              </Button>
             </div>
           )}
         </form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

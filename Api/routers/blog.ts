@@ -1,6 +1,6 @@
 import {z} from "zod";
 import {createTRPCRouter,protectedProcedure} from "@/server/api/trpc"
-import { generateTopic } from "@/lib/mistralapi";
+import { generateBlogPost, generateTopic } from "@/lib/mistralapi";
 export const blogRouter = createTRPCRouter({
     getBlogs: protectedProcedure.input(z.object({
         projectId: z.string()
@@ -30,6 +30,48 @@ export const blogRouter = createTRPCRouter({
         } catch (error) {
             console.error("Error generating topics:", error);
             return { error: "Failed to generate topics" };
+        }
+    }),
+    generateBlogs: protectedProcedure.input(z.object({
+        projectId: z.string(),
+        titles: z.array(z.string()),
+        style: z.string()
+    })).mutation(async ({ctx, input}) => {
+        const {projectId, titles, style} = input;
+        
+        if (!titles.length) {
+            throw new Error("No titles provided for blog generation");
+        }
+
+        try {
+            const blogs = [];
+            for (const title of titles) {
+                try {
+                    const content = await generateBlogPost(title, style);
+                    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+                        throw new Error(`Invalid content generated for title: ${title}`);
+                    }
+                    blogs.push({
+                        title,
+                        content: content.trim(),
+                        projectId,
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    });
+                } catch (contentError) {
+                    console.error(`Error generating content for title '${title}':`, contentError);
+                    throw new Error(`Failed to generate content for title: ${title}`);
+                }
+            }
+
+            const blogPosts = await ctx.prisma.blogArticle.createMany({
+                data: blogs
+            });
+
+            return blogPosts;
+        } catch (error) {
+            console.error("Error in blog generation process:", error);
+            throw error;
         }
     })
 });
