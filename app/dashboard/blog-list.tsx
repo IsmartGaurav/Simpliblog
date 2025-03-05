@@ -19,112 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { api } from "@/utils/api";  // Add this import
-
-// interface BlogFormData {
-//   theme: string
-//   description: string
-//   numberOfBlogs: number
-//   writingStyle: string
-// }
-
-// export default function BlogGeneratorButton() {
-//   const [open, setOpen] = useState(false)
-//   const form = useForm<BlogFormData>()
-
-//   const onSubmit = (data: BlogFormData) => {
-//     console.log(data)
-//     setOpen(false)
-//   }
-
-//   return (
-//     <Dialog open={open} onOpenChange={setOpen}>
-//       <DialogTrigger asChild>
-//         <Button variant="secondary">Generate New Blogs</Button>
-//       </DialogTrigger>
-//       <DialogContent className="sm:max-w-[425px]">
-//         <DialogHeader>
-//           <DialogTitle>Generate Blog Posts</DialogTitle>
-//         </DialogHeader>
-//         <Form {...form}>
-//           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-//             <FormField
-//               control={form.control}
-//               name="theme"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Blog Theme</FormLabel>
-//                   <FormControl>
-//                     <Input placeholder="Enter blog theme..." {...field} />
-//                   </FormControl>
-//                 </FormItem>
-//               )}
-//             />
-//             <FormField
-//               control={form.control}
-//               name="description"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Description</FormLabel>
-//                   <FormControl>
-//                     <Textarea 
-//                       placeholder="Enter blog description..." 
-//                       {...field} 
-//                     />
-//                   </FormControl>
-//                 </FormItem>
-//               )}
-//             />
-//             <FormField
-//               control={form.control}
-//               name="numberOfBlogs"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Number of Blogs</FormLabel>
-//                   <FormControl>
-//                     <Input 
-//                       type="number" 
-//                       min={1} 
-//                       max={10} 
-//                       {...field} 
-//                     />
-//                   </FormControl>
-//                 </FormItem>
-//               )}
-//             />
-//             <FormField
-//               control={form.control}
-//               name="writingStyle"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Writing Style</FormLabel>
-//                   <Select 
-//                     onValueChange={field.onChange} 
-//                     defaultValue={field.value}
-//                   >
-//                     <FormControl>
-//                       <SelectTrigger>
-//                         <SelectValue placeholder="Select a style" />
-//                       </SelectTrigger>
-//                     </FormControl>
-//                     <SelectContent>
-//                       <SelectItem value="casual">Casual</SelectItem>
-//                       <SelectItem value="formal">Formal</SelectItem>
-//                       <SelectItem value="technical">Technical</SelectItem>
-//                       <SelectItem value="creative">Creative</SelectItem>
-//                     </SelectContent>
-//                   </Select>
-//                 </FormItem>
-//               )}
-//             />
-//             <Button type="submit">Generate</Button>
-//           </form>
-//         </Form>
-//       </DialogContent>
-//     </Dialog>
-//   )
-// }
-
+import { api } from "@/utils/api";
+import {useRefetch} from "@/hooks/useRefetch"
 
 const BlogList = () => {
   const [open, setOpen] = useState(false);
@@ -132,64 +28,68 @@ const BlogList = () => {
   const [description, setDescription] = useState('');
   const [numBlogs, setNumBlogs] = useState('');
   const [writingStyle, setWritingStyle] = useState('');
-
-  // Uncomment and use this if you need form hook
-  // const form = useForm();
-
+  const refetch = useRefetch()
   const getTopics = api.blog.getTopics.useMutation()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!theme || !description || !numBlogs || !writingStyle) return;
+    
+    // Set the dialog to remain open during API call
     getTopics.mutate({
       projectId: "default",
       theme,
       description,
       number: parseInt(numBlogs),
-      style:writingStyle
+      style: writingStyle
     })
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary">Generate New Blogs</Button>
+        <Button variant="secondary" className="w-full sm:w-auto">Generate New Blogs</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[95%] max-w-[425px] p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Generate Blog Posts</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label>Blog Theme</label>
+            <label className="text-sm font-medium mb-2 block">Blog Theme</label>
             <Input 
               placeholder="Enter blog theme..." 
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-2">
-            <label>Description</label>
+            <label className="text-sm font-medium mb-2 block">Description</label>
             <Textarea
               placeholder="Enter blog description..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-2">
-            <label>Number of Blogs</label>
+            <label className="text-sm font-medium mb-2 block">Number of Blogs</label>
             <Input
               type="number"
               min={1}
               max={10}
               value={numBlogs}
               onChange={(e) => setNumBlogs(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-2">
-            <label>Writing Style</label>
+            <label className="text-sm font-medium mb-2 block">Writing Style</label>
             <Select
               value={writingStyle}
               onValueChange={setWritingStyle}
+              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a style" />
@@ -202,7 +102,42 @@ const BlogList = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit">Generate</Button>
+          <Button 
+            type="submit" 
+            variant="default"
+            disabled={getTopics.isLoading || !theme || !description || !numBlogs || !writingStyle}
+            aria-busy={getTopics.isLoading}
+            className={`w-full ${getTopics.isLoading ? "cursor-wait" : "cursor-pointer"}`}
+          >
+            {getTopics.isLoading ? (
+              <div className="flex items-center justify-center space-x-2">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Generating Titles...</span>
+              </div>
+            ) : (
+              'Generate Titles'
+            )}
+          </Button>
+          {getTopics.data && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium mb-2">Generated Blog Topics:</h3>
+              <div className="max-h-[200px] overflow-y-auto">
+                <ul className="space-y-2">
+                  {getTopics.data.map((topic, index) => (
+                    <li 
+                      key={index}
+                      className="p-2 bg-secondary/50 rounded-md text-sm"
+                    >
+                      {topic}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

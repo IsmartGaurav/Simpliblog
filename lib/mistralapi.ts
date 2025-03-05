@@ -10,7 +10,7 @@ export const generateTopic = async (theme: string,description:string,style:strin
         model: "ft:mistral-large-latest:bc0f206a:20250302:e08ef653",
         messages: [
             {
-                role: 'system', content: 'You are a helpful assistant that generate topic for a blog post.given theme and description. Respond in JSON format of {title:string[]}'
+                role: 'system', content: 'You are a helpful assistant that generates blog post topics based on a given theme and description. Return a JSON object with an array of titles in the format: {"titles": ["title1", "title2", ...]}'
             },
             {
                 role: 'user', content: `Theme: ${theme}, Description: ${description}, Style: ${style}, Number Of Topic: ${numTopic}`
@@ -18,8 +18,26 @@ export const generateTopic = async (theme: string,description:string,style:strin
         ],
         response_format: {type:'json_object'}
     })
-    const data = await response.json()
-    return JSON.parse(data.choices[0].message.content)["titles"] as string[]
+
+    try {
+        let content = response.choices[0].message.content.trim()
+        
+        // Remove markdown formatting if present
+        if (content.startsWith('```json')) {
+            content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+        }
+        
+        const parsedContent = JSON.parse(content)
+        
+        if (!parsedContent.titles || !Array.isArray(parsedContent.titles)) {
+            throw new Error('Invalid response format: missing titles array')
+        }
+        
+        return parsedContent.titles as string[]
+    } catch (error) {
+        console.error('Error parsing Mistral API response:', error)
+        throw new Error('Failed to generate blog topics. Please try again.')
+    }
 }
 
 export const generateBlogPost = async (title:string,style:string) => {

@@ -138,7 +138,7 @@ export const DashboardNavigation = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     Upgrade to access all the features and benefits.
                   </p>
-                  <button className="mt-3 w-full bg-primary text-primary-foreground px-4 py-2 text-sm font-medium rounded-md hover:bg-primary/90 transition-colors">
+                  <button className="mt-3 w-full bg-primary text-primary-foreground px-4 py-2 text-sm font-medium rounded-md hover:bg-primary/90 transition-colors cursor-pointer">
                     Upgrade
                   </button>
                 </div>

@@ -22,7 +22,7 @@ export const blogRouter = createTRPCRouter({
         style: z.string().optional().default("")
     })).mutation(async ({ctx, input}) => {
         const {projectId, theme, description, style} = input;
-        const number = input.number || 5; // Default to 5 if null
+        const number = input.number || 1; // Default to 5 if null
         
         try {
             const topics = await generateTopic(theme, description, style, number);
