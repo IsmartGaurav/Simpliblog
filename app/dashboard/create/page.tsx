@@ -1,10 +1,10 @@
 import BlogGeneratorButton from "@/app/dashboard/blog-list";
 
-const Posts = () => {
+const Create = () => {
     return <>
     <h1>Hello Hi From Dashborad Posts</h1>
     <BlogGeneratorButton />
     </>
 }
 
-export default Posts;
+export default Create;

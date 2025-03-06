@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  BarChart3, 
+  PencilLine, 
   FileText, 
   Home, 
   Mail, 
@@ -71,10 +71,17 @@ export const DashboardNavigation = () => {
               Dashboard
             </Link>
             <Link 
-              href="/dashboard/posts" 
-              className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/posts" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
+              href="/dashboard/create" 
+              className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/create" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
             >
-              <FileText className={`mr-3 h-5 w-5 ${pathname === "/dashboard/posts" ? "text-primary" : ""}`} />
+              <PencilLine className={`mr-3 h-5 w-5 ${pathname === "/dashboard/create" ? "text-primary" : ""}`} />
+              Posts
+            </Link>
+            <Link 
+              href="/dashboard/blogs" 
+              className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/blogs" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
+            >
+              <FileText className={`mr-3 h-5 w-5 ${pathname === "/dashboard/blogs" ? "text-primary" : ""}`} />
               Posts
             </Link>
           </nav>
