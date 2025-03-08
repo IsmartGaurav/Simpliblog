@@ -75,7 +75,7 @@ export const DashboardNavigation = () => {
               className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/create" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
             >
               <PencilLine className={`mr-3 h-5 w-5 ${pathname === "/dashboard/create" ? "text-primary" : ""}`} />
-              Posts
+              Create
             </Link>
             <Link 
               href="/dashboard/blogs" 
