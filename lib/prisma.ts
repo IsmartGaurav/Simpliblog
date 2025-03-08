@@ -6,44 +6,50 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+// SECURITY: Don't log the full connection string as it contains credentials
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
 
-// Create connection pool with better configuration
+// Create connection pool with security-focused configuration
 const pool = new Pool({ 
   connectionString,
-  max: 10, // Maximum number of connections
-  idleTimeoutMillis: 30000, // How long a connection can be idle before being closed
-  connectionTimeoutMillis: 5000, // How long to wait for a connection
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
-// Add event listeners for connection issues
+// Use a more secure error handler that doesn't expose connection details
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+  // Avoid logging the full error object as it may contain connection details
+  console.error('Database pool error occurred');
   // Don't exit process in Edge Runtime
-  // process.exit(-1);
 });
 
 // Set up adapter with the improved pool
 const adapter = new PrismaNeon(pool);
 
-// Create Prisma client with adapter and better logging
+// Create Prisma client with adapter and minimal logging
 export const prisma = global.prisma || 
   new PrismaClient({
     adapter,
-    log: ['error', 'warn'],
+    // Only log true errors, not warnings which might contain sensitive data
+    log: process.env.NODE_ENV === 'development' ? ['error'] : [],
   });
 
-// Add connection handling
+// Simplified connection handling without detailed logging
 prisma.$connect()
   .then(() => {
-    console.log('Successfully connected to the database');
+    // Don't log any connection details
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Database connected');
+    }
   })
-  .catch((e) => {
-    console.error('Failed to connect to the database', e);
+  .catch(() => {
+    console.error('Database connection failed');
+    // Don't log the error object as it may contain the connection string
   });
 
 // Note: We can't use process.on in Edge Runtime

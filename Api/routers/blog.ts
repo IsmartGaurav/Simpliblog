@@ -19,7 +19,10 @@ export const blogRouter = createTRPCRouter({
     getBlogBySlug: protectedProcedure.input(z.object({
         slug: z.string()
     })).query(async ({ctx, input}) => {
-        console.log("Fetching blog with slug:", input.slug);
+        // Only log the slug, not the entire request context
+        if (process.env.NODE_ENV === 'development') {
+            console.log("Fetching blog with slug:", input.slug);
+        }
         
         try {
             // First try to find the blog with the exact slug
@@ -30,12 +33,17 @@ export const blogRouter = createTRPCRouter({
             });
             
             if (blog) {
-                console.log("Blog found with exact slug match");
+                // Only log minimal information
+                if (process.env.NODE_ENV === 'development') {
+                    console.log("Blog found with exact slug match");
+                }
                 return blog;
             }
             
             // If not found, try a case-insensitive search
-            console.log("Blog not found with exact match, trying case-insensitive search");
+            if (process.env.NODE_ENV === 'development') {
+                console.log("Blog not found with exact match, trying case-insensitive search");
+            }
             const blogs = await ctx.prisma.blogArticle.findMany({
                 where: {
                     slug: {
@@ -47,12 +55,16 @@ export const blogRouter = createTRPCRouter({
             });
             
             if (blogs.length > 0) {
-                console.log("Blog found with case-insensitive match:", blogs[0].slug);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log("Blog found with case-insensitive match:", blogs[0].slug);
+                }
                 return blogs[0];
             }
             
             // If still not found, try a partial match
-            console.log("Blog not found with case-insensitive match, trying partial match");
+            if (process.env.NODE_ENV === 'development') {
+                console.log("Blog not found with case-insensitive match, trying partial match");
+            }
             const partialMatches = await ctx.prisma.blogArticle.findMany({
                 where: {
                     OR: [
@@ -64,31 +76,30 @@ export const blogRouter = createTRPCRouter({
             });
             
             if (partialMatches.length > 0) {
-                console.log("Blog found with partial match:", partialMatches[0].slug);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log("Blog found with partial match:", partialMatches[0].slug);
+                }
                 return partialMatches[0];
             }
             
-            // Log all available blogs for debugging
-            console.log("No blog found, listing all available blogs for debugging");
-            const allBlogs = await ctx.prisma.blogArticle.findMany({
-                select: {
-                    id: true,
-                    slug: true,
-                    title: true
-                }
-            });
-            
-            console.log("Available blogs:", JSON.stringify(allBlogs, null, 2));
+            // Log only blog counts and slugs, not entire objects
+            if (process.env.NODE_ENV === 'development') {
+                console.log("No blog found, checking available blogs count");
+                const allBlogSlugs = await ctx.prisma.blogArticle.findMany({
+                    select: {
+                        slug: true,
+                    }
+                });
+                console.log(`Available blog count: ${allBlogSlugs.length}`);
+            }
             
             throw new TRPCError({
                 code: "NOT_FOUND",
-                message: `Blog not found with slug: ${input.slug}`,
-                cause: {
-                    availableSlugs: allBlogs.map(b => b.slug)
-                }
+                message: `Blog not found with slug: ${input.slug}`
             });
         } catch (error) {
-            console.error("Error in getBlogBySlug:", error);
+            // Avoid logging the full error object as it may contain sensitive data
+            console.error("Error in getBlogBySlug for slug:", input.slug);
             throw error;
         }
     }),
@@ -120,7 +131,10 @@ export const blogRouter = createTRPCRouter({
         const {projectId, titles, style} = input;
         
         if (!titles.length) {
-            throw new Error("No titles provided for blog generation");
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "No titles provided for blog generation"
+            });
         }
 
         try {
@@ -134,7 +148,10 @@ export const blogRouter = createTRPCRouter({
                 if (projectId === 'default') {
                     const userId = ctx.auth.id;
                     if (!userId) {
-                        throw new Error("User not authenticated");
+                        throw new TRPCError({
+                            code: "UNAUTHORIZED",
+                            message: "User not authenticated"
+                        });
                     }
 
                     // Check if user exists
@@ -163,7 +180,10 @@ export const blogRouter = createTRPCRouter({
                         }
                     });
                 } else {
-                    throw new Error(`Project with ID ${projectId} not found`);
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Project not found"
+                    });
                 }
             }
 
@@ -172,7 +192,10 @@ export const blogRouter = createTRPCRouter({
                 try {
                     const content = await generateBlogPost(title, style);
                     if (!content || typeof content !== 'string' || content.trim().length === 0) {
-                        throw new Error(`Invalid content generated for title: ${title}`);
+                        throw new TRPCError({
+                            code: "INTERNAL_SERVER_ERROR",
+                            message: "Invalid content generated"
+                        });
                     }
                     blogs.push({
                         title,
@@ -183,8 +206,14 @@ export const blogRouter = createTRPCRouter({
                         updatedAt: new Date()
                     });
                 } catch (contentError) {
-                    console.error(`Error generating content for title '${title}':`, contentError);
-                    throw new Error(`Failed to generate content for title: ${title}`);
+                    // Only log minimal error info in development
+                    if (process.env.NODE_ENV === 'development') {
+                        console.error(`Error generating content for title: ${title}`);
+                    }
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: "Failed to generate blog content"
+                    });
                 }
             }
 
@@ -194,8 +223,75 @@ export const blogRouter = createTRPCRouter({
 
             return blogPosts;
         } catch (error) {
-            console.error("Error in blog generation process:", error);
-            throw error;
+            // Only log minimal error info in development
+            if (process.env.NODE_ENV === 'development') {
+                console.error("Error in blog generation process");
+            }
+            
+            if (error instanceof TRPCError) {
+                throw error;
+            }
+            
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to generate blogs"
+            });
         }
-    })
+    }),
+    updateBlog: protectedProcedure
+        .input(z.object({
+            id: z.string(),
+            content: z.string(),
+            title: z.string().optional(),
+            published: z.boolean().optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+            const { id, content, title, published } = input;
+            
+            // Only log in development
+            if (process.env.NODE_ENV === 'development') {
+                console.log("Updating blog with ID:", id);
+            }
+            
+            try {
+                // Find the blog first to check if it exists
+                const existingBlog = await ctx.prisma.blogArticle.findUnique({
+                    where: { id }
+                });
+                
+                if (!existingBlog) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Blog not found"
+                    });
+                }
+                
+                // Update the blog
+                const updatedBlog = await ctx.prisma.blogArticle.update({
+                    where: { id },
+                    data: {
+                        content,
+                        ...(title && { title }),
+                        ...(published !== undefined && { published }),
+                        updatedAt: new Date()
+                    }
+                });
+                
+                return updatedBlog;
+            } catch (error) {
+                // Only log minimal error info in development
+                if (process.env.NODE_ENV === 'development') {
+                    console.error("Error updating blog");
+                }
+                
+                if (error instanceof TRPCError) {
+                    throw error;
+                }
+                
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to update blog"
+                });
+            }
+        }),
 });
