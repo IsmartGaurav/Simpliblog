@@ -54,7 +54,38 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
   
   const router = useRouter();
 
-  // Update selected project when selectedProjectId prop changes
+  // Initialize from localStorage on component mount
+  useEffect(() => {
+    const storedProjectId = localStorage.getItem('selectedProjectId');
+    
+    if (storedProjectId) {
+      // If we have a stored project ID, use that
+      if (projects.length > 0) {
+        const project = projects.find(p => p.id === storedProjectId);
+        if (project) {
+          setSelectedProject(project);
+        } else if (storedProjectId === "default") {
+          setSelectedProject({ id: "default", name: "Default Project", slug: "default" });
+        }
+      } else if (storedProjectId === "default") {
+        // Projects haven't loaded yet, but we know it's the default project
+        setSelectedProject({ id: "default", name: "Default Project", slug: "default" });
+      }
+    } else if (selectedProjectId) {
+      // Fall back to prop if no localStorage value
+      const isDefault = selectedProjectId === "default";
+      if (isDefault) {
+        setSelectedProject({ id: "default", name: "Default Project", slug: "default" });
+      } else if (projects.length > 0) {
+        const project = projects.find(p => p.id === selectedProjectId);
+        if (project) {
+          setSelectedProject(project);
+        }
+      }
+    }
+  }, [projects, selectedProjectId]);
+
+  // Update selected project when projects load or selectedProjectId prop changes
   useEffect(() => {
     if (selectedProjectId && projects.length > 0) {
       const project = projects.find(p => p.id === selectedProjectId);
@@ -75,11 +106,7 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
       refetch();
       
       // Select the newly created project
-      if (onProjectChange) {
-        onProjectChange(newProject.id);
-      } else {
-        setSelectedProject(newProject);
-      }
+      handleProjectSelect(newProject);
       
       router.refresh();
     },
@@ -112,11 +139,7 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
       
       // If we deleted the currently selected project, switch to default
       if (selectedProject && selectedProject.id === editProjectId) {
-        if (onProjectChange) {
-          onProjectChange("default");
-        } else {
-          setSelectedProject({ id: "default", name: "Default Project", slug: "default" });
-        }
+        handleProjectSelect({ id: "default", name: "Default Project", slug: "default" });
       }
       
       router.refresh();
@@ -175,6 +198,15 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
     setIsDropdownOpen(false);
+    
+    // Save to localStorage
+    localStorage.setItem('selectedProjectId', project.id);
+    
+    // Dispatch a custom event for real-time updates
+    const event = new CustomEvent('projectChanged', { 
+      detail: { projectId: project.id }
+    });
+    window.dispatchEvent(event);
     
     if (onProjectChange) {
       onProjectChange(project.id);

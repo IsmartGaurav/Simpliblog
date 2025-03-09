@@ -76,7 +76,7 @@ export const DashboardNavigation = () => {
               className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/blogs" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
             >
               <FileText className={`mr-3 h-5 w-5 ${pathname === "/dashboard/blogs" ? "text-primary" : ""}`} />
-              Posts
+              My Blogs
             </Link>
           </nav>
 
@@ -98,7 +98,7 @@ export const DashboardNavigation = () => {
               className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/ai-chat" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
             >
               <Sparkles className={`mr-3 h-5 w-5 ${pathname === "/dashboard/ai-chat" ? "text-primary" : ""}`} />
-              AI Integration
+              AI Chatbot
             </Link>
           </nav>
 

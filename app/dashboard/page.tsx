@@ -6,7 +6,7 @@ const Dashboard = () => {
   return (
     <div className="p-4">
           {/* Alert banner */}
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-6 flex items-start">
+          {/* <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-6 flex items-start">
             <div className="mr-3 mt-0.5">
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
@@ -19,7 +19,7 @@ const Dashboard = () => {
             <button className="p-1 hover:bg-secondary/20 rounded-md">
               <X className="h-4 w-4" />
             </button>
-          </div>
+          </div> */}
 
           <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
