@@ -294,4 +294,55 @@ export const blogRouter = createTRPCRouter({
                 });
             }
         }),
+        
+    // Add a procedure to increment the view count
+    incrementViewCount: protectedProcedure
+        .input(z.object({
+            id: z.string()
+        }))
+        .mutation(async ({ ctx, input }) => {
+            try {
+                // Find the blog first to check if it exists
+                const existingBlog = await ctx.prisma.blogArticle.findUnique({
+                    where: { id: input.id }
+                });
+                
+                if (!existingBlog) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Blog not found"
+                    });
+                }
+                
+                // Increment the view count
+                const updatedBlog = await ctx.prisma.blogArticle.update({
+                    where: { id: input.id },
+                    data: {
+                        viewCount: {
+                            increment: 1
+                        }
+                    },
+                    select: {
+                        id: true,
+                        viewCount: true
+                    }
+                });
+                
+                return updatedBlog;
+            } catch (error) {
+                // Only log minimal error info in development
+                if (process.env.NODE_ENV === 'development') {
+                    console.error("Error incrementing view count");
+                }
+                
+                if (error instanceof TRPCError) {
+                    throw error;
+                }
+                
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to increment view count"
+                });
+            }
+        })
 });

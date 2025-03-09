@@ -70,13 +70,7 @@ export const DashboardNavigation = () => {
               <Home className={`mr-3 h-5 w-5 ${pathname === "/dashboard" ? "text-primary" : ""}`} />
               Dashboard
             </Link>
-            <Link 
-              href="/dashboard/create" 
-              className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/create" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
-            >
-              <PencilLine className={`mr-3 h-5 w-5 ${pathname === "/dashboard/create" ? "text-primary" : ""}`} />
-              Create
-            </Link>
+          
             <Link 
               href="/dashboard/blogs" 
               className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/blogs" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
@@ -92,25 +86,18 @@ export const DashboardNavigation = () => {
             </p>
           </div>
           <nav className="space-y-1">
-            <Link 
-              href="/dashboard/emails" 
-              className="flex items-center px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary/10 hover:text-foreground"
+          <Link 
+              href="/dashboard/generate-blog" 
+              className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/generate-blog" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
             >
-              <Mail className="mr-3 h-5 w-5" />
-              Send Emails
+              <PencilLine className={`mr-3 h-5 w-5 ${pathname === "/dashboard/generate-blog" ? "text-primary" : ""}`} />
+              Generate Blog
             </Link>
             <Link 
-              href="/dashboard/uploads" 
-              className="flex items-center px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary/10 hover:text-foreground"
+              href="/dashboard/ai-chat" 
+              className={`flex items-center px-4 py-2 text-sm font-medium ${pathname === "/dashboard/ai-chat" ? "bg-secondary/20 text-foreground border-l-2 border-primary" : "text-muted-foreground hover:bg-secondary/10 hover:text-foreground"}`}
             >
-              <Upload className="mr-3 h-5 w-5" />
-              Upload Files
-            </Link>
-            <Link 
-              href="/dashboard/ai" 
-              className="flex items-center px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary/10 hover:text-foreground"
-            >
-              <Sparkles className="mr-3 h-5 w-5" />
+              <Sparkles className={`mr-3 h-5 w-5 ${pathname === "/dashboard/ai-chat" ? "text-primary" : ""}`} />
               AI Integration
             </Link>
           </nav>

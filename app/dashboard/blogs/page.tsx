@@ -3,10 +3,11 @@
 import { api } from "@/utils/api";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, Calendar, Clock, Eye, File, Pencil } from 'lucide-react';
+import { Calendar, Clock, Eye, File, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ProjectSelector } from '@/components/project-selector';
 
 export default function BlogsPage() {
   const [projectId, setProjectId] = useState<string>('default');
@@ -14,6 +15,9 @@ export default function BlogsPage() {
   // Fetch blogs for the selected project
   const { data: blogs, isLoading, error, refetch } = api.blog.getBlogs.useQuery({ 
     projectId 
+  }, {
+    // Ensure we don't cache the results so it refreshes when changing projects
+    refetchOnWindowFocus: true
   });
 
   // Trigger a refetch when the component mounts or projectId changes
@@ -35,19 +39,47 @@ export default function BlogsPage() {
     return plainText.substring(0, maxLength) + '...';
   };
 
+  // Handle project change
+  const handleProjectChange = (value: string) => {
+    setProjectId(value);
+  };
+
+  // Get the current project name for display
+  const { data: projects } = api.project.getProjects.useQuery();
+  const currentProjectName = projectId === 'default' 
+    ? 'Default Project' 
+    : projects?.find(p => p.id === projectId)?.name || 'Unknown Project';
+
   return (
-    <div className="container h-full">
+    <div className="w-full pb-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold">Blog Articles</h1>
           <p className="text-muted-foreground mt-1">Manage and browse your blog content</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/create">
-            <Pencil className="mr-2 h-4 w-4" />
-            Create New Blog
-          </Link>
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="w-64">
+            <ProjectSelector 
+              selectedProjectId={projectId} 
+              onProjectChange={handleProjectChange} 
+            />
+          </div>
+          <Button asChild>
+            <Link href="/dashboard/create">
+              <Pencil className="mr-2 h-4 w-4" />
+              Create New Blog
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold">{currentProjectName}</h2>
+        <p className="text-sm text-muted-foreground">
+          {blogs && blogs.length > 0 
+            ? `${blogs.length} blog post${blogs.length === 1 ? '' : 's'}`
+            : 'No blog posts yet'}
+        </p>
       </div>
 
       {isLoading ? (
@@ -120,7 +152,7 @@ export default function BlogsPage() {
           <div className="rounded-full bg-blue-100 dark:bg-blue-900/20 p-3 w-16 h-16 flex items-center justify-center mx-auto mb-4">
             <File className="h-8 w-8 text-blue-500 dark:text-blue-400" />
           </div>
-          <h2 className="text-xl font-bold">No Blog Posts Yet</h2>
+          <h2 className="text-xl font-bold">No Blog Posts in {currentProjectName}</h2>
           <p className="text-muted-foreground mt-2 mb-6">Get started by creating your first blog post</p>
           <Button asChild>
             <Link href="/dashboard/create">

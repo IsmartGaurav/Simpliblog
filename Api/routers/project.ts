@@ -12,31 +12,36 @@ export const projectRouter = createTRPCRouter({
         id: true,
         name: true,
         slug: true,
-        description: true,
         createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
     return projects;
   }),
 
   createProject: protectedProcedure.input(z.object({
-    name: z.string().min(1, "Project name is required"),
-    description: z.string().optional()
+    name: z.string().min(1, "Project name is required")
   })).mutation(async ({ ctx, input }) => {
     try {
-      const slug = input.name
+      // Generate a unique slug with timestamp and random string
+      const timestamp = Date.now().toString(36);
+      const randomStr = Math.random().toString(36).substring(2, 7);
+      const baseSlug = input.name
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '')
         .replace(/-+/g, '-')
-        .substring(0, 50) + `-${Math.random().toString(36).substring(2, 7)}`;
+        .substring(0, 30);
+      
+      const slug = `${baseSlug}-${timestamp}-${randomStr}`;
 
       const project = await ctx.prisma.project.create({
         data: {
           slug,
           name: input.name,
-          description: input.description,
-          userId: ctx.auth.id // Changed from userId to id
+          userId: ctx.auth.id
         },
         select: {
           id: true,
@@ -47,62 +52,101 @@ export const projectRouter = createTRPCRouter({
       });
       return project;
     } catch (error) {
+      console.error("Project creation error:", error);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to create project',
-        cause: error
+        message: 'Failed to create project'
       });
     }
   }),
 
   updateProject: protectedProcedure.input(z.object({
-    id: z.string().uuid(),
-    name: z.string().min(1, "Project name is required"),
-    description: z.string().optional()
+    id: z.string(),
+    name: z.string().min(1, "Project name is required")
   })).mutation(async ({ ctx, input }) => {
     try {
-      const project = await ctx.prisma.project.update({
+      // Check if the project exists and belongs to the user
+      const projectCheck = await ctx.prisma.project.findFirst({
         where: {
           id: input.id,
-          userId: ctx.auth.id // Changed from userId to id
+          userId: ctx.auth.id
+        }
+      });
+
+      if (!projectCheck) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Project not found or you do not have permission to update it'
+        });
+      }
+
+      const project = await ctx.prisma.project.update({
+        where: {
+          id: input.id
         },
         data: {
           name: input.name,
-          description: input.description
+          updatedAt: new Date()
         },
         select: {
           id: true,
           name: true,
-          description: true,
           updatedAt: true
         }
       });
       return project;
     } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to update project',
-        cause: error
+        message: 'Failed to update project'
       });
     }
   }),
 
   deleteProject: protectedProcedure.input(z.object({
-    id: z.string().uuid()
+    id: z.string()
   })).mutation(async ({ ctx, input }) => {
     try {
-      await ctx.prisma.project.delete({
+      // Check if the project exists and belongs to the user
+      const projectCheck = await ctx.prisma.project.findFirst({
         where: {
           id: input.id,
-          userId: ctx.auth.id // Changed from userId to id
+          userId: ctx.auth.id
         }
       });
+
+      if (!projectCheck) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Project not found or you do not have permission to delete it'
+        });
+      }
+
+      // First delete all blog articles associated with this project
+      await ctx.prisma.blogArticle.deleteMany({
+        where: {
+          projectId: input.id
+        }
+      });
+
+      // Then delete the project
+      await ctx.prisma.project.delete({
+        where: {
+          id: input.id
+        }
+      });
+      
       return { success: true };
     } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to delete project',
-        cause: error
+        message: 'Failed to delete project'
       });
     }
   })

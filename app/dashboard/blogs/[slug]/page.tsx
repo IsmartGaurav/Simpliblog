@@ -40,7 +40,7 @@ export default function BlogPost() {
   }
   
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
+    <div className="w-full">
       <Suspense fallback={<BlogSkeleton />}>
         <BlogContent slug={slug} />
       </Suspense>
@@ -73,6 +73,8 @@ function BlogContent({ slug }: { slug: string }) {
   const [editableTitle, setEditableTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('edit');
+  const [viewCount, setViewCount] = useState(0);
+  const [viewIncremented, setViewIncremented] = useState(false);
   
   const { 
     data: blog, 
@@ -97,6 +99,9 @@ function BlogContent({ slug }: { slug: string }) {
         }
         if (data?.title) {
           setEditableTitle(data.title);
+        }
+        if (data?.viewCount !== undefined) {
+          setViewCount(data.viewCount);
         }
         // Only log minimal information
         if (process.env.NODE_ENV === 'development') {
@@ -137,6 +142,15 @@ function BlogContent({ slug }: { slug: string }) {
     }
   });
   
+  // Hook up the increment view count mutation
+  const incrementViewMutation = api.blog.incrementViewCount.useMutation({
+    onSuccess: (data) => {
+      if (data?.viewCount !== undefined) {
+        setViewCount(data.viewCount);
+      }
+    }
+  });
+  
   const [htmlContent, setHtmlContent] = useState('');
 
   useEffect(() => {
@@ -145,6 +159,14 @@ function BlogContent({ slug }: { slug: string }) {
       queryStarted: true
     }));
   }, []);
+
+  // Increment view count when blog is loaded
+  useEffect(() => {
+    if (blog && !viewIncremented && !isEditing) {
+      incrementViewMutation.mutate({ id: blog.id });
+      setViewIncremented(true);
+    }
+  }, [blog, viewIncremented, isEditing, incrementViewMutation]);
 
   useEffect(() => {
     if (blog?.content) {
@@ -254,7 +276,7 @@ function BlogContent({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <div className="flex justify-between items-center">
         <Button asChild variant="outline" size="sm">
           <Link href="/dashboard/blogs">
@@ -296,7 +318,6 @@ function BlogContent({ slug }: { slug: string }) {
             onClick={() => setIsEditing(true)}
             variant="default"
             size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
           >
             <Edit2 className="mr-2 h-4 w-4" />
             Edit Blog
@@ -377,7 +398,7 @@ function BlogContent({ slug }: { slug: string }) {
             <span className="hidden sm:inline">•</span>
             <div className="flex items-center gap-1 text-xs">
               <Eye className="h-3 w-3" />
-              <span>0 views</span>
+              <span>{viewCount} {viewCount === 1 ? 'view' : 'views'}</span>
             </div>
           </div>
           
