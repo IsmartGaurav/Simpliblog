@@ -1,9 +1,65 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
 import BlogList from "@/app/dashboard/blog-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PencilLine, Sparkles, Lightbulb, Edit, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Same constant as in project-selector to maintain consistency
+const PROJECT_STORAGE_KEY = 'selectedProjectId';
+const DEFAULT_PROJECT_ID = 'default';
+
 const GenerateBlog = () => {
+  const [projectId, setProjectId] = useState<string>(DEFAULT_PROJECT_ID);
+  
+  // Handle project change event
+  const handleProjectChange = useCallback((newProjectId: string) => {
+    setProjectId(newProjectId);
+    console.log(`Generate Blog page: Project changed to ${newProjectId}`);
+  }, []);
+  
+  // Initialize from localStorage and listen for changes
+  useEffect(() => {
+    // Get initial project from localStorage
+    const getInitialProject = () => {
+      if (typeof window !== 'undefined') {
+        const storedProjectId = localStorage.getItem(PROJECT_STORAGE_KEY);
+        if (storedProjectId) {
+          handleProjectChange(storedProjectId);
+        }
+      }
+    };
+    
+    // Listen for custom events
+    const onProjectChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{projectId: string}>;
+      if (customEvent.detail && customEvent.detail.projectId) {
+        handleProjectChange(customEvent.detail.projectId);
+      }
+    };
+    
+    // Listen for storage events (cross-tab)
+    const onStorageChange = (event: StorageEvent) => {
+      if (event.key === PROJECT_STORAGE_KEY && event.newValue) {
+        handleProjectChange(event.newValue);
+      }
+    };
+    
+    // Initialize
+    getInitialProject();
+    
+    // Add event listeners
+    window.addEventListener('projectChanged', onProjectChanged);
+    window.addEventListener('storage', onStorageChange);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('projectChanged', onProjectChanged);
+      window.removeEventListener('storage', onStorageChange);
+    };
+  }, [handleProjectChange]);
+
   return (
     <div className="space-y-10 pb-8">
       {/* Enhanced Hero Section with integrated blog generator */}
@@ -27,7 +83,7 @@ const GenerateBlog = () => {
           
           {/* Integrated Blog Generator - Directly in hero section */}
           <div className="mt-8 w-full">
-            <BlogList selectedProjectId="default" />
+            <BlogList selectedProjectId={projectId} />
           </div>
         </div>
       </div>
