@@ -88,7 +88,7 @@ const BlogList: React.FC<BlogListProps> = ({ selectedProjectId = 'default' }) =>
     e.preventDefault();
     if (!theme || !description || !numBlogs || !writingStyle) return;
     
-    toast.loading(`Generating topics for ${currentProjectName}...`);
+    const toastId = toast.loading(`Generating topics for ${currentProjectName}...`);
     
     getTopics.mutate({
       projectId,
@@ -96,18 +96,26 @@ const BlogList: React.FC<BlogListProps> = ({ selectedProjectId = 'default' }) =>
       description,
       number: parseInt(numBlogs),
       style: writingStyle
+    }, {
+      onSettled: () => {
+        toast.dismiss(toastId);
+      }
     });
   };
 
   const handleGenerateBlogs = () => {
     if (generatedTitles.length === 0) return;
     
-    toast.loading(`Creating blogs for ${currentProjectName}...`);
+    const toastId = toast.loading(`Creating blogs for ${currentProjectName}...`);
     
     generateBlogs.mutate({
       projectId,
       titles: generatedTitles,
       style: writingStyle
+    }, {
+      onSettled: () => {
+        toast.dismiss(toastId);
+      }
     });
   };
 

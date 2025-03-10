@@ -171,14 +171,8 @@ export default function BlogsPage() {
                     <div className="flex space-x-2">
                       <Link href={`/dashboard/blogs/${blog.slug}`}>
                         <Button variant="outline" size="sm">
-                          <ExternalLink className="h-4 w-4 mr-1" />
+                          <ExternalLink className="h-4 w-4 mr-1 cursor-pointer" />
                           View
-                        </Button>
-                      </Link>
-                      <Link href={`/dashboard/edit/${blog.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Pencil className="h-4 w-4 mr-1" />
-                          Edit
                         </Button>
                       </Link>
                     </div>
