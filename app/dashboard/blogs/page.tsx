@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/utils/api';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,45 +14,60 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Same constant as in project-selector to maintain consistency
+const PROJECT_STORAGE_KEY = 'selectedProjectId';
+const DEFAULT_PROJECT_ID = 'default';
+
 export default function BlogsPage() {
-  const [projectId, setProjectId] = useState<string>('default');
+  const [projectId, setProjectId] = useState<string>(DEFAULT_PROJECT_ID);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Get projectId from localStorage on initial load
+  // Get projectId from localStorage and listen for changes
+  const handleProjectChange = useCallback((newProjectId: string) => {
+    setProjectId(newProjectId);
+    console.log(`Blog page: Project changed to ${newProjectId}`);
+  }, []);
+  
+  // Handle project change event
   useEffect(() => {
-    const getProjectId = () => {
-      const storedProjectId = localStorage.getItem('selectedProjectId');
-      if (storedProjectId) {
-        setProjectId(storedProjectId);
+    // Get initial project from localStorage
+    const getInitialProject = () => {
+      if (typeof window !== 'undefined') {
+        const storedProjectId = localStorage.getItem(PROJECT_STORAGE_KEY);
+        if (storedProjectId) {
+          handleProjectChange(storedProjectId);
+        }
       }
     };
     
-    // Initial load
-    getProjectId();
-    
-    // Listen for project changes via custom event
-    const handleProjectChange = (event: Event) => {
+    // Listen for custom events
+    const onProjectChanged = (event: Event) => {
       const customEvent = event as CustomEvent<{projectId: string}>;
       if (customEvent.detail && customEvent.detail.projectId) {
-        setProjectId(customEvent.detail.projectId);
+        handleProjectChange(customEvent.detail.projectId);
       }
     };
     
-    // Listen for storage changes (in case of updates from other tabs)
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'selectedProjectId' && event.newValue) {
-        setProjectId(event.newValue);
+    // Listen for storage events (cross-tab)
+    const onStorageChange = (event: StorageEvent) => {
+      if (event.key === PROJECT_STORAGE_KEY && event.newValue) {
+        handleProjectChange(event.newValue);
       }
     };
     
-    window.addEventListener('projectChanged', handleProjectChange);
-    window.addEventListener('storage', handleStorageChange);
+    // Initialize
+    getInitialProject();
     
+    // Add event listeners
+    window.addEventListener('projectChanged', onProjectChanged);
+    window.addEventListener('storage', onStorageChange);
+    
+    // Cleanup
     return () => {
-      window.removeEventListener('projectChanged', handleProjectChange);
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('projectChanged', onProjectChanged);
+      window.removeEventListener('storage', onStorageChange);
     };
-  }, []);
+  }, [handleProjectChange]);
   
   // Fetch blogs for the selected project
   const { 
@@ -88,7 +103,7 @@ export default function BlogsPage() {
   
   // Get the current project name for display
   const { data: projects } = api.project.getProjects.useQuery();
-  const currentProjectName = projectId === 'default' 
+  const currentProjectName = projectId === DEFAULT_PROJECT_ID 
     ? 'Default Project' 
     : projects?.find(p => p.id === projectId)?.name || 'Unknown Project';
 

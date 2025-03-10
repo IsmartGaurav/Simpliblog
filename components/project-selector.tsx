@@ -38,6 +38,10 @@ interface ProjectSelectorProps {
   onProjectChange?: (projectId: string) => void;
 }
 
+// This is for cross-component communication
+const PROJECT_STORAGE_KEY = 'selectedProjectId';
+const DEFAULT_PROJECT = { id: "default", name: "Default Project", slug: "default" };
+
 export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectSelectorProps = {}) {
   // Fetch all projects using TRPC
   const { data: projects = [], isLoading, refetch } = api.project.getProjects.useQuery();
@@ -54,48 +58,52 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
   
   const router = useRouter();
 
-  // Initialize from localStorage on component mount
+  // Initialize from localStorage or props on component mount
   useEffect(() => {
-    const storedProjectId = localStorage.getItem('selectedProjectId');
+    const initializeProject = () => {
+      // First check localStorage
+      const storedProjectId = typeof window !== 'undefined' ? localStorage.getItem(PROJECT_STORAGE_KEY) : null;
+      
+      // Logic to select initial project
+      if (storedProjectId) {
+        // If we have a stored ID, try to find it in the projects list
+        if (projects.length > 0) {
+          const project = projects.find(p => p.id === storedProjectId);
+          if (project) {
+            setSelectedProject(project);
+            return;
+          }
+        }
+        
+        // If it's the default project, we can set it without checking the projects list
+        if (storedProjectId === DEFAULT_PROJECT.id) {
+          setSelectedProject(DEFAULT_PROJECT);
+          return;
+        }
+      }
+      
+      // Fall back to prop if no valid localStorage value
+      if (selectedProjectId) {
+        if (selectedProjectId === DEFAULT_PROJECT.id) {
+          setSelectedProject(DEFAULT_PROJECT);
+          return;
+        }
+        
+        if (projects.length > 0) {
+          const project = projects.find(p => p.id === selectedProjectId);
+          if (project) {
+            setSelectedProject(project);
+            return;
+          }
+        }
+      }
+      
+      // Final fallback: use default project
+      setSelectedProject(DEFAULT_PROJECT);
+    };
     
-    if (storedProjectId) {
-      // If we have a stored project ID, use that
-      if (projects.length > 0) {
-        const project = projects.find(p => p.id === storedProjectId);
-        if (project) {
-          setSelectedProject(project);
-        } else if (storedProjectId === "default") {
-          setSelectedProject({ id: "default", name: "Default Project", slug: "default" });
-        }
-      } else if (storedProjectId === "default") {
-        // Projects haven't loaded yet, but we know it's the default project
-        setSelectedProject({ id: "default", name: "Default Project", slug: "default" });
-      }
-    } else if (selectedProjectId) {
-      // Fall back to prop if no localStorage value
-      const isDefault = selectedProjectId === "default";
-      if (isDefault) {
-        setSelectedProject({ id: "default", name: "Default Project", slug: "default" });
-      } else if (projects.length > 0) {
-        const project = projects.find(p => p.id === selectedProjectId);
-        if (project) {
-          setSelectedProject(project);
-        }
-      }
-    }
+    initializeProject();
   }, [projects, selectedProjectId]);
-
-  // Update selected project when projects load or selectedProjectId prop changes
-  useEffect(() => {
-    if (selectedProjectId && projects.length > 0) {
-      const project = projects.find(p => p.id === selectedProjectId);
-      if (project) {
-        setSelectedProject(project);
-      } else if (selectedProjectId === "default") {
-        setSelectedProject({ id: "default", name: "Default Project", slug: "default" });
-      }
-    }
-  }, [selectedProjectId, projects]);
 
   // Create project mutation
   const createProjectMutation = api.project.createProject.useMutation({
@@ -117,12 +125,18 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
   
   // Update project mutation
   const updateProjectMutation = api.project.updateProject.useMutation({
-    onSuccess: () => {
+    onSuccess: (updatedProject) => {
       toast.success("Project updated successfully");
       setIsEditDialogOpen(false);
       setEditProjectName("");
       setEditProjectId("");
       refetch();
+      
+      // If we updated the currently selected project, update the display
+      if (selectedProject && selectedProject.id === updatedProject.id) {
+        setSelectedProject(updatedProject);
+      }
+      
       router.refresh();
     },
     onError: (error) => {
@@ -139,7 +153,7 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
       
       // If we deleted the currently selected project, switch to default
       if (selectedProject && selectedProject.id === editProjectId) {
-        handleProjectSelect({ id: "default", name: "Default Project", slug: "default" });
+        handleProjectSelect(DEFAULT_PROJECT);
       }
       
       router.refresh();
@@ -200,14 +214,28 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
     setIsDropdownOpen(false);
     
     // Save to localStorage
-    localStorage.setItem('selectedProjectId', project.id);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(PROJECT_STORAGE_KEY, project.id);
+    }
     
     // Dispatch a custom event for real-time updates
-    const event = new CustomEvent('projectChanged', { 
-      detail: { projectId: project.id }
-    });
-    window.dispatchEvent(event);
+    if (typeof window !== 'undefined') {
+      // Use both methods to ensure all components get updated
+      // 1. CustomEvent for in-page communication
+      window.dispatchEvent(new CustomEvent('projectChanged', { 
+        detail: { projectId: project.id }
+      }));
+      
+      // 2. Storage event for cross-tab communication
+      // We need to manually dispatch a storage event for the current tab
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: PROJECT_STORAGE_KEY,
+        newValue: project.id,
+        storageArea: localStorage
+      }));
+    }
     
+    // Call the prop callback if provided
     if (onProjectChange) {
       onProjectChange(project.id);
     }
@@ -230,19 +258,19 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
           <div className="p-2 space-y-1">
             <button
               className="flex items-center space-x-2 px-3 py-2 w-full text-sm hover:bg-secondary/10 rounded-md"
-              onClick={() => handleProjectSelect({ id: "default", name: "Default Project", slug: "default" })}
+              onClick={() => handleProjectSelect(DEFAULT_PROJECT)}
             >
               <span className="truncate">Default Project</span>
             </button>
             
             {projects.map((project) => (
               <div key={project.id} className="flex items-center">
-                <button
+              <button
                   className="flex-1 flex items-center space-x-2 px-3 py-2 text-sm hover:bg-secondary/10 rounded-md"
                   onClick={() => handleProjectSelect(project)}
-                >
-                  <span className="truncate">{project.name}</span>
-                </button>
+              >
+                <span className="truncate">{project.name}</span>
+              </button>
                 
                 {/* Edit button */}
                 <button
@@ -274,39 +302,34 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
             className="flex items-center space-x-2 px-3 py-2 w-full text-sm hover:bg-secondary/10 border-t border-border"
             onClick={() => setIsCreateDialogOpen(true)}
           >
-            <Plus className="h-4 w-4" />
-            <span>Create Project</span>
-          </button>
+                <Plus className="h-4 w-4" />
+                <span>Create Project</span>
+              </button>
         </div>
       )}
 
       {/* Create Project Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Project Name</label>
-              <Input
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="Enter project name"
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button
-                onClick={handleCreateProject}
-                disabled={createProjectMutation.isLoading || !newProjectName.trim()}
-              >
-                {createProjectMutation.isLoading ? "Creating..." : "Create Project"}
-              </Button>
-            </DialogFooter>
-          </div>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Project</DialogTitle>
+              </DialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium block mb-2">Project Name</label>
+                  <Input
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Enter project name"
+                  />
+                </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleCreateProject} disabled={createProjectMutation.isLoading}>
+              {createProjectMutation.isLoading ? 'Creating...' : 'Create Project'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -316,46 +339,38 @@ export function ProjectSelector({ selectedProjectId, onProjectChange }: ProjectS
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Project Name</label>
-              <Input
-                value={editProjectName}
-                onChange={(e) => setEditProjectName(e.target.value)}
-                placeholder="Enter project name"
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button
-                onClick={handleEditProject}
-                disabled={updateProjectMutation.isLoading || !editProjectName.trim()}
-              >
-                {updateProjectMutation.isLoading ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
+          <div className="py-4">
+            <label className="text-sm font-medium block mb-2">Project Name</label>
+                  <Input
+              value={editProjectName}
+              onChange={(e) => setEditProjectName(e.target.value)}
+              placeholder="Enter project name"
+                  />
+                </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleEditProject} disabled={updateProjectMutation.isLoading}>
+              {updateProjectMutation.isLoading ? 'Updating...' : 'Update Project'}
+                </Button>
+          </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-      {/* Delete Project Dialog */}
+      {/* Delete Project Confirmation */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the project "{editProjectName}" and all its blogs. This action cannot be undone.
+              This will delete the project "{editProjectName}" and all its associated blogs. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteProject}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteProjectMutation.isLoading ? "Deleting..." : "Delete Project"}
+            <AlertDialogAction onClick={handleDeleteProject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
