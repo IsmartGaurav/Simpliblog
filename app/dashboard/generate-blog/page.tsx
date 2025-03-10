@@ -17,7 +17,7 @@ const GenerateBlog = () => {
   const handleProjectChange = useCallback((newProjectId: string) => {
     setProjectId(newProjectId);
     console.log(`Generate Blog page: Project changed to ${newProjectId}`);
-  }, []);
+  }, [setProjectId]);
   
   // Initialize from localStorage and listen for changes
   useEffect(() => {

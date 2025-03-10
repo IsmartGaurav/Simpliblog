@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, BarChart3, Settings, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 
 const Dashboard = () => {
   return (
@@ -33,9 +34,9 @@ const Dashboard = () => {
               <p className="text-muted-foreground text-sm">
                 You haven't created any posts yet.
               </p>
-              <button className="mt-4 bg-primary text-primary-foreground px-4 py-2 text-sm font-medium rounded-md hover:bg-primary/90 transition-colors">
+              <Link href="/dashboard/generate-blog" className="mt-4 inline-block bg-primary text-primary-foreground px-4 py-2 text-sm font-medium rounded-md hover:bg-primary/90 transition-colors">
                 Create New Post
-              </button>
+              </Link>
             </div>
 
             {/* Card 2 */}
@@ -47,9 +48,9 @@ const Dashboard = () => {
               <p className="text-muted-foreground text-sm">
                 No analytics data available yet.
               </p>
-              <button className="mt-4 bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium rounded-md hover:bg-secondary/80 transition-colors">
+              <Link href="/dashboard/analytics" className="mt-4 inline-block bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium rounded-md hover:bg-secondary/80 transition-colors">
                 View Details
-              </button>
+              </Link>
             </div>
 
             {/* Card 3 */}
@@ -61,9 +62,9 @@ const Dashboard = () => {
               <p className="text-muted-foreground text-sm">
                 Configure your blog settings and preferences.
               </p>
-              <button className="mt-4 bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium rounded-md hover:bg-secondary/80 transition-colors">
+              <Link href="/dashboard/profile" className="mt-4 inline-block bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium rounded-md hover:bg-secondary/80 transition-colors">
                 Manage Settings
-              </button>
+              </Link>
             </div>
           </div>
     </div>

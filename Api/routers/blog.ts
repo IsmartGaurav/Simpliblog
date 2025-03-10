@@ -344,5 +344,47 @@ export const blogRouter = createTRPCRouter({
                     message: "Failed to increment view count"
                 });
             }
+        }),
+        
+    // Add a procedure to delete a blog
+    deleteBlog: protectedProcedure
+        .input(z.object({
+            id: z.string()
+        }))
+        .mutation(async ({ ctx, input }) => {
+            try {
+                // Find the blog first to check if it exists
+                const existingBlog = await ctx.prisma.blogArticle.findUnique({
+                    where: { id: input.id }
+                });
+                
+                if (!existingBlog) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Blog not found"
+                    });
+                }
+                
+                // Delete the blog
+                await ctx.prisma.blogArticle.delete({
+                    where: { id: input.id }
+                });
+                
+                return { success: true, message: "Blog deleted successfully" };
+            } catch (error) {
+                // Only log minimal error info in development
+                if (process.env.NODE_ENV === 'development') {
+                    console.error("Error deleting blog");
+                }
+                
+                if (error instanceof TRPCError) {
+                    throw error;
+                }
+                
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to delete blog"
+                });
+            }
         })
 });

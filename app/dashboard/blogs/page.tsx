@@ -7,12 +7,25 @@ import { formatDistanceToNow } from 'date-fns';
 import { 
   Pencil, 
   PlusCircle, 
-  ExternalLink 
+  ExternalLink,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from 'sonner';
 
 // Same constant as in project-selector to maintain consistency
 const PROJECT_STORAGE_KEY = 'selectedProjectId';
@@ -21,6 +34,7 @@ const DEFAULT_PROJECT_ID = 'default';
 export default function BlogsPage() {
   const [projectId, setProjectId] = useState<string>(DEFAULT_PROJECT_ID);
   const [searchTerm, setSearchTerm] = useState('');
+  const [blogToDelete, setBlogToDelete] = useState<string | null>(null);
   
   // Get projectId from localStorage and listen for changes
   const handleProjectChange = useCallback((newProjectId: string) => {
@@ -81,6 +95,24 @@ export default function BlogsPage() {
     refetchOnWindowFocus: true,
     enabled: Boolean(projectId),
   });
+  
+  // Delete blog mutation
+  const deleteBlogMutation = api.blog.deleteBlog.useMutation({
+    onSuccess: () => {
+      toast.success('Blog deleted successfully');
+      refetch(); // Refresh the blog list
+      setBlogToDelete(null); // Reset the blog to delete
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete blog: ${error.message}`);
+      setBlogToDelete(null); // Reset the blog to delete
+    }
+  });
+  
+  // Handle delete blog
+  const handleDeleteBlog = (id: string) => {
+    deleteBlogMutation.mutate({ id });
+  };
   
   // Refetch when project changes
   useEffect(() => {
@@ -175,6 +207,33 @@ export default function BlogsPage() {
                           View
                         </Button>
                       </Link>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4 mr-1 cursor-pointer" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the blog
+                              article "{blog.title}" and remove it from our servers.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteBlog(blog.id)}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>
