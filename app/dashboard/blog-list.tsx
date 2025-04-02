@@ -143,24 +143,25 @@ const BlogList: React.FC<BlogListProps> = ({ selectedProjectId = 'default' }) =>
       <DialogTrigger asChild>
         <Button variant="secondary" className="w-full sm:w-auto">Generate New Blogs</Button>
       </DialogTrigger>
-      <DialogContent className="w-[95%] max-w-[425px] p-4 sm:p-6 max-h-[90vh]">
+      <DialogContent className="w-[95%] max-w-[500px] p-5 sm:p-7 max-h-[90vh] rounded-lg">
         <DialogHeader>
           <DialogTitle>Generate Blog Posts for {currentProjectName}</DialogTitle>
           <DialogClose className="absolute right-4 top-4" />
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Blog Theme</label>
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <div className="space-y-2"> 
+            <label className="text-sm font-medium block px-1">Blog Theme</label>
             <Input 
               placeholder="Enter blog theme..." 
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
               required
+              
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-sm font-medium block px-1">Description</label>
             <Textarea
               placeholder="Enter blog description..."
               value={description}
@@ -169,7 +170,7 @@ const BlogList: React.FC<BlogListProps> = ({ selectedProjectId = 'default' }) =>
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Number of Blogs</label>
+            <label className="text-sm font-medium block px-1">Number of Blogs</label>
             <Input
               type="number"
               min={1}
@@ -179,8 +180,8 @@ const BlogList: React.FC<BlogListProps> = ({ selectedProjectId = 'default' }) =>
               required
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Writing Style</label>
+          <div className="space-y-3">
+            <label className="text-sm font-medium block px-1">Writing Style</label>
             <Select
               value={writingStyle}
               onValueChange={setWritingStyle}
@@ -199,27 +200,27 @@ const BlogList: React.FC<BlogListProps> = ({ selectedProjectId = 'default' }) =>
           </div>
           <Button 
             type="submit" 
-            className="w-full" 
+            className="w-full mt-2" 
             disabled={getTopics.isLoading || !theme || !description || !numBlogs || !writingStyle}
           >
             {getTopics.isLoading ? 'Generating...' : 'Generate Titles'}
           </Button>
           {generatedTitles.length > 0 && (
-            <div className="mt-4 space-y-4">
+            <div className="mt-6 space-y-5 pt-2 border-t border-gray-200 dark:border-gray-800">
               <div>
-                <h3 className="text-sm font-medium mb-2">Generated Blog Topics for {currentProjectName}:</h3>
-                <ul className="space-y-2">
+                <h3 className="text-sm font-medium px-1 py-2">Generated Blog Topics for {currentProjectName}:</h3>
+                <ul className="space-y-3">
                   {generatedTitles.map((topic, index) => (
                     <li 
                       key={index}
-                      className="p-2 bg-secondary/50 rounded-md text-sm"
+                      className="p-3 bg-secondary/50 rounded-md text-sm hover:bg-secondary/70 transition-colors"
                     >
                       {topic}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex space-x-3 mt-4 mb-2">
                 <Button 
                   type="button" 
                   variant="outline"

@@ -38,7 +38,7 @@ export const generateBlogPost = async (title:string,style:string) => {
     }
 
     try {
-        const context = await tvly.search(title,[]);
+        const context = await tvly.search(title, {searchDepth: "advanced"});
         if (!context) {
             throw new Error('Failed to fetch context for the blog post');
         }
@@ -63,7 +63,7 @@ export const generateBlogPost = async (title:string,style:string) => {
                 },
                 {
                     role: 'user',
-                    content: `Generate a 500-word blog post with the following details:
+                    content: `Generate a 1000-word blog post with the following details:
                     Title: ${title}
                     Writing Style: ${style}
                     
